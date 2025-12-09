@@ -13,6 +13,7 @@
   nccl: "2.17"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.10"
   numpy: "2.0"
   scipy: "1.14"
@@ -42,6 +43,7 @@
   nccl: "2.17"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.11"
   numpy: "2.1"
   scipy: "1.14"
@@ -71,6 +73,7 @@
   nccl: "2.18"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.11"
   numpy: "2.0"
   scipy: "1.16"
@@ -100,6 +103,7 @@
   nccl: "2.19"
   cutensor: null
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.11"
   numpy: "2.1"
   scipy: "1.16"
@@ -129,6 +133,7 @@
   nccl: "2.20"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.12"
   numpy: "2.2"
   scipy: "1.16"
@@ -158,6 +163,7 @@
   nccl: "2.21"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.12"
   numpy: "2.0"
   scipy: "1.15"
@@ -187,6 +193,7 @@
   nccl: "2.22"
   cutensor: "2.3"
   cusparselt: null
+  cudss: "0.7.1"
   python: "3.13"
   numpy: "2.2"
   scipy: "1.14"
@@ -216,6 +223,7 @@
   nccl: "2.26"
   cutensor: null
   cusparselt: "0.7.1"
+  cudss: "0.7.1"
   python: "3.12"
   numpy: "2.3"
   scipy: "1.15"
@@ -245,6 +253,7 @@
   nccl: "2.26"
   cutensor: "2.3"
   cusparselt: "0.7.1"
+  cudss: "0.7.1"
   python: "3.12"
   numpy: "2.3"
   scipy: "1.16"
@@ -275,6 +284,7 @@
   nccl: "2.27"
   cutensor: "2.3"
   cusparselt: "0.7.1"
+  cudss: "0.7.1"
   python: "3.14"
   numpy: "2.3"
   scipy: "1.16"
@@ -317,6 +327,7 @@
   nccl: null
   cutensor: null
   cusparselt: null
+  cudss: null
   cudnn: null
   python: "3.11"
   numpy: "2.3"
@@ -343,6 +354,7 @@
   nccl: "2.27"
   cutensor: "2.3"
   cusparselt: null
+  cudss: null
   python: "3.12"
   numpy: "2.3"
   scipy: "1.16"
@@ -372,6 +384,7 @@
   nccl: "2.27"
   cutensor: "2.3"
   cusparselt: null
+  cudss: null
   python: "3.12"
   numpy: "2.3"
   scipy: "1.16"
@@ -398,6 +411,7 @@
   nccl: "2.27"
   cutensor: "2.3"
   cusparselt: null
+  cudss: null
   python: "3.12"
   numpy: "pre"
   scipy: "pre"
@@ -423,6 +437,7 @@
   nccl: "2.26"
   cutensor: "2.3"
   cusparselt: null
+  cudss: null
   python: "3.12"
   numpy: "2.3"
   scipy: "1.16"

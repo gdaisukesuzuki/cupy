@@ -89,6 +89,7 @@ class _RuntimeInfo:
     jitify_build_version = None
     cutensor_version = None
     cusparselt_version = None
+    cudss_version = None
     cython_build_version = None
     cython_version = None
 
@@ -230,6 +231,13 @@ class _RuntimeInfo:
         except ImportError:
             pass
 
+        # cuDSS
+        try:
+            from cupy_backends.cuda.libs import cusdss
+            self.cudss_version = cudss.get_build_version()
+        except ImportError:
+            pass
+
         # Cython
         self.cython_build_version = cupy._util.cython_build_ver
         try:
@@ -288,6 +296,7 @@ class _RuntimeInfo:
             ('NCCL Runtime Version', self.nccl_runtime_version),
             ('cuTENSOR Version', self.cutensor_version),
             ('cuSPARSELt Build Version', self.cusparselt_version),
+            ('cuDSS Build Version', self.cudss_version),
         ]
 
         device_count = 0

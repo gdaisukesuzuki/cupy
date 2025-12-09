@@ -234,6 +234,7 @@ class LinuxGenerator:
             nccl = matrix.nccl
             cutensor = matrix.cutensor
             cusparselt = matrix.cusparselt
+            cudss = matrix.cudss
             if nccl is not None:
                 spec = self.schema['nccl'][nccl]['spec']
                 nccl_cuda_schema = self.schema['nccl'][nccl]['cuda'][cuda]
@@ -268,6 +269,15 @@ class LinuxGenerator:
                 else:
                     packages.append(f'libcusparselt{major}-{spec}')
                     packages.append(f'libcusparselt-devel-{spec}')
+            if cudss is not None:
+                spec = self.schema['cudss'][cudss]['spec']
+                major = cudss.split('.')[0]
+                if apt:
+                    packages.append(f'libcudss{major}={spec}')
+                    packages.append(f'libcudss-dev={spec}')
+                else:
+                    packages.append(f'libcudss{major}-{spec}')
+                    packages.append(f'libcudss-devel-{spec}')
             return packages
         elif matrix.rocm is not None:
             return self.schema['rocm'][matrix.rocm]['packages']  # type: ignore[no-any-return] # NOQA
@@ -449,7 +459,7 @@ def validate_schema(schema: SchemaType) -> None:
                     raise ValueError(
                         f'unknown system: {system} '
                         f'while parsing schema os:{value}')
-        if key in ('nccl', 'cutensor', 'cusparselt'):
+        if key in ('nccl', 'cutensor', 'cusparselt', 'cudss'):
             for value, value_schema in key_schema.items():
                 for cuda, _ in value_schema.get('cuda', {}).items():
                     if cuda not in schema['cuda'].keys():
@@ -519,7 +529,7 @@ def validate_matrixes(schema: SchemaType, matrixes: list[Matrix]) -> None:
                     f'{matrix.project}: {key} must be one of '
                     f'{possible_values} but got {value}')
 
-            if key in ('nccl', 'cutensor', 'cusparselt'):
+            if key in ('nccl', 'cutensor', 'cusparselt', 'cudss') and matrix.cuda is not None:
                 supports = schema[key][value].get('cuda', None)
                 if supports is not None and matrix.cuda not in supports:
                     errors.append(

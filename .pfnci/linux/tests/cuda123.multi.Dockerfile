@@ -14,7 +14,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
        && \
     apt-get -qqy install ccache git curl && \
     apt-get -qqy --allow-change-held-packages \
-            --allow-downgrades install 'libnccl2=2.19.*+cuda12.3' 'libnccl-dev=2.19.*+cuda12.3'
+            --allow-downgrades install 'libnccl2=2.19.*+cuda12.3' 'libnccl-dev=2.19.*+cuda12.3' 'libcudss0=0.7.1.*' 'libcudss-dev=0.7.1.*'
 
 ENV PATH "/usr/lib/ccache:${PATH}"
 
