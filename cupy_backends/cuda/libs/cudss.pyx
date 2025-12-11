@@ -19,21 +19,31 @@ cdef extern from *:
         PATCH_LEVEL   = 2
 
 cdef extern from '../../cupy_cudss.h' nogil:
-    # Opaque Data Structures
     ctypedef int cudaDataType_t 'cudaDataType'
 
-    ctypedef void* cudssHandle_t 'cudssHandle_t'
-    ctypedef void* cudssConfig_t 'cudssConfig_t'
-    ctypedef void* cudssMatrix_t 'cudssMatrix_t'
-    ctypedef struct cudssData_t:
+    cdef struct cudssContext: 
         pass
+
+    ctypedef cudssContext* cudssHandle_t 'cudssHandle_t'
+
+    cdef struct cudssMatrix: 
+        pass
+
+    ctypedef cudssMatrix cudssMatrix_t 'cudssMatrix_t'
+
+    cdef struct cudssConfig: 
+        pass
+
+    ctypedef cudssConfig* cudssConfig_t 'cudssConfig_t'
+
+    cdef struct cudssData: 
+        pass
+
+    ctypedef cudssData* cudssData_t 'cudssData_t'
 
     # Non-opaque Data Structures
     ctypedef struct cudssDeviceMemHandler_t:
-        void* ctx
-        int (*device_alloc)(void* ctx, void** ptr, size_t size, cudaStream_t stream)
-        int (*device_free)(void* ctx, void* ptr, size_t size, cudaStream_t stream)
-        char name[64]
+        pass
     
     # Communication Layer Types
     ctypedef struct cudssDistributedInterface_t:
@@ -168,6 +178,7 @@ cdef class Handle:
     def ptr(self):
         return <intptr_t>self._ptr
 
+
 cdef class DeviceMemHandler:
     cdef void * _ptr
 
@@ -198,36 +209,32 @@ cdef class Matrix:
 
 
 cdef class Data:
-    cdef cudssData_t _ptr
+    cdef void * _ptr
 
     def __init__(self):
-        self._ptr = <cudssData_t>NULL
+        self._ptr = PyMem_Malloc(sizeof(cudssData_t))
 
     def __dealloc__(self):
-        self._ptr = <cudssData_t>NULL
+        PyMem_Free(self._ptr)
+        self._ptr = NULL
 
     @property
     def ptr(self):
         return <intptr_t>self._ptr
 
-
 cdef class Config:
-    cdef cudssConfig_t _ptr
+    cdef void * _ptr
 
-    def __cinit__(self):
-        self._ptr = <cudssConfig_t>NULL
-        cdef cudssStatus_t status
-        status = cudssConfigCreate(&self._ptr) 
-        check_status(status)
+    def __init__(self):
+        self._ptr = PyMem_Malloc(sizeof(cudssConfig_t))
 
     def __dealloc__(self):
-        if self._ptr != <cudssConfig_t>NULL:
-            cudssConfigDestroy(self._ptr)
-            self._ptr = <cudssConfig_t>NULL
+        PyMem_Free(self._ptr)
+        self._ptr = NULL
 
     @property
     def ptr(self):
-        return <intptr_t> self._ptr
+        return <intptr_t>self._ptr
 
 
 cdef class DistributedInterface:
@@ -280,10 +287,13 @@ cpdef int createMg(Handle handle, int deviceCount) except -1:
     check_status(status)
     return deviceIndices
 
-cpdef destroy(handle):
+cpdef destroy(Handle handle):
     """Releases hardware resources used by the cuDss library"""
-    status = cudssDestroy(<cudssHandle_t> handle)
-    check_status(status)
+    cdef cudssStatus_t status
+    if handle._ptr != NULL:
+        status = cudssDestroy(<cudssHandle_t> handle)
+        check_status(status)
+        handle._ptr = NULL
 
 cpdef int getProperty(libraryPropertyType_t propertyType) except -1:
     cdef int value
@@ -293,15 +303,16 @@ cpdef int getProperty(libraryPropertyType_t propertyType) except -1:
     check_status(status)
     return value
 
-cpdef setStream(Handle handle, size_t stream):
+cpdef setStream(Handle handle):
     """Sets the stream to be used by the cuDSS library"""
-    status = cudssSetStream(<cudssHandle_t> handle, <cudaStream_t >stream)
+    cdef intptr_t stream = stream_module.get_current_stream_ptr()
+    status = cudssSetStream(<cudssHandle_t> handle, <runtime.Stream> stream)
     check_status(status)
 
 cpdef setDeviceMemHandler(Handle handle, DeviceMemHandler handler):
     """Set the current device memory handler inside the library handle"""
     status = cudssSetDeviceMemHandler(<cudssHandle_t>handle,
-        <cudssDeviceMemHandler_t*>handler.ptr)
+        <cudssDeviceMemHandler_t*>handler._ptr)
 
 cpdef DeviceMemHandler getDeviceMemHandler(Handle handle):
     """Get the current device memory handler"""
@@ -311,82 +322,80 @@ cpdef DeviceMemHandler getDeviceMemHandler(Handle handle):
     check_status(status)
     return handler
 
-cpdef setCommLayer(handle, str libFileName):
+cpdef setCommLayer(Handle handle, str libFileName):
     """Sets the communication layer to be used in MGMN mode"""
     status = cudssSetCommLayer(<cudssHandle_t>handle,
         libFileName)
     check_status(status)
 
-cpdef setThreadingayer(handle, str thrLibFileName):
+cpdef setThreadingayer(Handle handle, str thrLibFileName):
     """Sets the threading layer to be used in MGMN mode"""
     status = cudssSetThreadingLayer(<cudssHandle_t>handle,
         thrLibFileName)
     check_status(status)
 
-cpdef Config configCreate():
+cpdef configCreate(Config config):
     """Initializes a cuDSS configuration object"""
-    cdef Config config = Config()
-    return config
+    status = cudssConfigCreate(<cudssConfig_t*> config._ptr)
+    check_status(status)
 
 cpdef configDestroy(Config config):
     """Destroys a cuDSS configuration object"""
-    cdef cudssStatus_t status
-    if config._ptr != <cudssConfig_t>NULL:
-        status = cudssConfigDestroy(config._ptr)
+    if config._ptr != NULL:
+        status = cudssConfigDestroy(<cudssConfig_t> config)
         check_status(status)
-        config._ptr = <cudssConfig_t>NULL
+        config._ptr = NULL
 
-cpdef configSet(Config config, param,
+cpdef configSet(Config config, int param,
                  size_t value, size_t sizeInBytes):
     """Sets a parameter in the cuDSS configuration object"""
-    status = cudssConfigSet(config._ptr, <cudssConfigParam_t>param,
+    status = cudssConfigSet(<cudssConfig_t>config, <cudssConfigParam_t>param,
         <void *>value, sizeInBytes)
     check_status(status)
 
-cpdef size_t configGet(Config config, param,
-                 size_t value, size_t sizeInBytes):
+cpdef (size_t,size_t) configGet(Config config, int param,
+                 size_t sizeInBytes):
     """Gets a parameter from the cuDSS configuration object"""
+    cdef size_t value = 0
     cdef size_t sizeWritten
-    status = cudssConfigGet(config._ptr, <cudssConfigParam_t>param,
+    status = cudssConfigGet(<cudssConfig_t>config, <cudssConfigParam_t>param,
         <void *>value, sizeInBytes, &sizeWritten)
     check_status(status)
-    return sizeWritten
+    return value, sizeWritten
 
-cpdef Data dataCreate(Handle handle):
+cpdef Data dataCreate(Handle handle, Data data):
     """Initializes a cuDSS data object"""
-    cdef Data data = Data()
-    with nogil:
-        status = cudssDataCreate(<cudssHandle_t> handle,
-            <cudssData_t*> data._ptr)
+    status = cudssDataCreate(<cudssHandle_t> handle,
+        <cudssData_t*> data._ptr)
     check_status(status)
-    return data
 
 cpdef dataDestroy(Handle handle, Data data):
     """Destroys a cuDSS data object"""
     cdef cudssStatus_t status
-    if data._ptr != <cudssData_t>NULL:
+    if data._ptr != NULL:
         status = cudssDataDestroy(<cudssHandle_t> handle,
-                data._ptr)
+                <cudssData_t>data)
         check_status(status)
-        data._ptr = <cudssData_t>NULL
+        data._ptr = NULL
 
 cpdef dataSet(Handle handle, Data data,
-                 param, size_t value, size_t sizeInBytes):
+                 int param, size_t value, size_t sizeInBytes):
     """Sets a parameter in the cuDSS data object"""
     status = cudssDataSet(<cudssHandle_t> handle,
-        data._ptr, <cudssDataParam_t>param,
-        <void *>value, sizeInBytes)
+        <cudssData_t> data, <cudssDataParam_t> param,
+        <void *> value, sizeInBytes)
     check_status(status)
 
-cpdef size_t dataGet(Handle handle, Data data,
-                 param, size_t value, size_t sizeInBytes):
+cpdef (size_t,size_t) dataGet(Handle handle, Data data,
+                 int param, size_t sizeInBytes):
     """Gets a parameter from the cuDSS data object"""
+    cdef size_t value = 0
     cdef size_t sizeWritten
     status = cudssDataGet(<cudssHandle_t> handle,
-        data._ptr, <cudssDataParam_t>param,
-        <void *>value, sizeInBytes, &sizeWritten)
+        <cudssData_t> data, <cudssDataParam_t> param,
+        <void *> value, sizeInBytes, &sizeWritten)
     check_status(status)
-    return sizeWritten
+    return value, sizeWritten
 
 cpdef execute(Handle handle, int phase,
                  Config config, Data data,
@@ -394,45 +403,40 @@ cpdef execute(Handle handle, int phase,
                  Matrix rhs):
     """Executes a cuDSS computation"""
     status = cudssExecute(<cudssHandle_t> handle, phase,
-        config._ptr, data._ptr,
+        <cudssConfig_t> config, <cudssData_t> data,
         <cudssMatrix_t> matrix, <cudssMatrix_t> solution,
         <cudssMatrix_t> rhs)
     check_status(status)
 
-cpdef Matrix matrixCreateDn(int64_t nrows, int64_t ncols,
-                     int64_t ld, size_t values,
-                     int valueType, int layout):
+cpdef Matrix matrixCreateDn(Matrix matrix, int64_t nrows,
+                    int64_t ncols,int64_t ld, size_t values,
+                    int valueType, int layout):
     """Creates a dense matrix object"""
-    cdef Matrix matrix = Matrix()
     status = cudssMatrixCreateDn(<cudssMatrix_t*> matrix._ptr,
         nrows, ncols, ld, <void*>values,
         <cudaDataType_t>valueType, <cudssLayout_t>layout)
     check_status(status)
-    return matrix
 
-cpdef Matrix matrixCreateBatchDn(int64_t batchCount,
+cpdef matrixCreateBatchDn(Matrix matrix, int64_t batchCount,
                           size_t nrows, size_t ncols,
                           size_t ld, size_t values,
                           int indexType, int valueType,
                           int layout):
     """Creates a batched dense matrix object"""
-    cdef Matrix matrix = Matrix()
     status = cudssMatrixCreateBatchDn(<cudssMatrix_t*> matrix._ptr,
         batchCount, <void*>nrows, <void*>ncols, <void*>ld,
         <void**>values, <cudaDataType_t>indexType,
         <cudaDataType_t>valueType, <cudssLayout_t>layout)
     check_status(status)
-    return matrix
 
-cpdef Matrix matrixCreateCsr(int64_t nrows, int64_t ncols,
-                        int64_t nnz,
+cpdef matrixCreateCsr(Matrix matrix, int64_t nrows,
+                        int64_t ncols, int64_t nnz,
                         size_t rowStart, size_t rowEnd,
                         size_t colIndices, size_t values,
                         int indexType, int valueType,
                         int mtype, int mview,
                         int indexBase):
     """Creates a CSR matrix object"""
-    cdef Matrix matrix = Matrix()
     status = cudssMatrixCreateCsr(<cudssMatrix_t*> matrix._ptr,
         nrows, ncols, nnz,
         <void*>rowStart, <void*>rowEnd, <void*>colIndices, <void*>values,
@@ -440,9 +444,8 @@ cpdef Matrix matrixCreateCsr(int64_t nrows, int64_t ncols,
         <cudssMatrixType_t>mtype, <cudssMatrixViewType_t>mview,
         <cudssIndexBase_t>indexBase)
     check_status(status)
-    return matrix
 
-cpdef Matrix matrixCreateBatchCsr(int64_t batchCount,
+cpdef matrixCreateBatchCsr(Matrix matrix, int64_t batchCount,
                              size_t nrows, size_t ncols,
                              size_t nnz,
                              size_t rowStart, size_t rowEnd,
@@ -451,7 +454,6 @@ cpdef Matrix matrixCreateBatchCsr(int64_t batchCount,
                              int mtype, int mview,
                              int indexBase):
     """Creates a batched CSR matrix object"""
-    cdef Matrix matrix = Matrix()
     status = cudssMatrixCreateBatchCsr(<cudssMatrix_t*> matrix._ptr,
         batchCount, <void*>nrows, <void*>ncols, <void*>nnz,
         <void**>rowStart, <void**>rowEnd, <void**>colIndices, <void**>values,
@@ -459,15 +461,14 @@ cpdef Matrix matrixCreateBatchCsr(int64_t batchCount,
         <cudssMatrixType_t>mtype, <cudssMatrixViewType_t>mview,
         <cudssIndexBase_t>indexBase)
     check_status(status)
-    return matrix
 
 cpdef matrixDestroy(Matrix matrix):
     """Destroys a cuDSS matrix object"""
     cdef cudssStatus_t status
-    if matrix._ptr != <cudssMatrix_t>NULL:
+    if matrix._ptr != NULL:
         status = cudssMatrixDestroy(<cudssMatrix_t> matrix)
         check_status(status)
-        matrix._ptr = <cudssMatrix_t>NULL
+        matrix._ptr = NULL
 
 cpdef matrixSetValues(Matrix matrix, size_t values):
     """Sets the values of a dense matrix"""
@@ -514,7 +515,8 @@ cpdef getMatrixGetDn(Matrix matrix):
     return nrows, ncols, ld, values, valueType, layout
 
 cpdef getMatrixBatchDn(Matrix matrix):
-    """Gets the properties of a batched dense matrix"""
+    """Gets the properties of         pass
+a batched dense matrix"""
     cdef int64_t batchCount
     cdef size_t nrows, ncols, ld
     cdef size_t values
@@ -581,8 +583,7 @@ cpdef int matrixGetFormat(Matrix matrix) except -1:
     """Gets the format of a matrix"""
     cdef int format
     cdef cudssStatus_t status
-    with nogil:
-        status = cudssMatrixGetFormat(<cudssMatrix_t> matrix, &format)
+    status = cudssMatrixGetFormat(<cudssMatrix_t> matrix, &format)
     check_status(status)
     return format
 
