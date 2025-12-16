@@ -222,8 +222,12 @@
   rocm: null
   nccl: "2.26"
   cutensor: null
+<<<<<<< HEAD
   cusparselt: "0.7.1"
   cudss: "0.7.1"
+=======
+  cusparselt: null
+>>>>>>> refs/remotes/origin/dev/cudss071
   python: "3.12"
   numpy: "2.3"
   scipy: "1.15"
@@ -252,8 +256,12 @@
   rocm: null
   nccl: "2.26"
   cutensor: "2.3"
+<<<<<<< HEAD
   cusparselt: "0.7.1"
   cudss: "0.7.1"
+=======
+  cusparselt: "0.8.1"
+>>>>>>> refs/remotes/origin/dev/cudss071
   python: "3.12"
   numpy: "2.3"
   scipy: "1.16"
@@ -283,8 +291,12 @@
   rocm: null
   nccl: "2.27"
   cutensor: "2.3"
+<<<<<<< HEAD
   cusparselt: "0.7.1"
   cudss: "0.7.1"
+=======
+  cusparselt: "0.8.1"
+>>>>>>> refs/remotes/origin/dev/cudss071
   python: "3.14"
   numpy: "2.3"
   scipy: "1.16"

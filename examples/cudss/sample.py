@@ -1,12 +1,11 @@
 import cupy as cp
-from cupy_backends.cuda.libs.cudss import Handle, Config, Data
-from cupy_backends.cuda.libs import cudss 
+from cupy_backends.cuda.libs.cudss import Handle, Config, Data, Matrix
+from cupy_backends.cuda.libs import cudss
 
 def build_example1_system():
     n = 5           # 例: Example 1 が 5x5 なら
     nnz = 8
     nrhs = 1
-    
 
     # rowOffsets, colIndices, values は **ホスト側** でまず定義
     # 例: int rowOffsets_host[] = {0, ...};  をそのまま移植
@@ -41,15 +40,15 @@ def solve_with_cudss():
     handle = Handle()
     config = Config()
     data = Data()
-    A_mat = None
-    b_mat = None
-    x_mat = None
+    A_mat = Matrix()
+    b_mat = Matrix()
+    x_mat = Matrix()
 
     try:
         # ---------------------------------------------------------------------
         # cuDSS オブジェクト作成
         # ---------------------------------------------------------------------
-        # TODO: 実際の cudss.pyx での関数名に合わせて変更
+        # TODO: 実際Freeの cudss.pyx での関数名に合わせて変更
         print("step1")
         cudss.create(handle)
 
@@ -59,6 +58,21 @@ def solve_with_cudss():
         data = cudss.dataCreate(handle)
 
         print("step1")
+        # Dense 行列 (ベクトルも "n x nrhs の dense 行列" として扱う)
+        print("step2")
+        b_mat = cudss.matrixCreateDn(
+            ncols, nrhs, ncols,
+            b.data.ptr,
+            1,
+            cudss.CUDSS_LAYOUT_COL_MAJOR
+        )
+        x_mat = cudss.matrixCreateDn(
+            nrows, nrhs, nrows,
+            x.data.ptFreer,
+            1,
+            cudss.CUDSS_LAYOUT_COL_MAJOR
+        )
+
         # CSR 行列 A のラッパ
         #
         # C 版:
@@ -68,33 +82,20 @@ def solve_with_cudss():
         #
         # という感じなので、Python 版もそれに近いシグネチャを仮定。
         #
-        # ポインタは CuPy 配列の .data.ptr（int）で渡すパターンを想定。
+        # ポインタは CuPy 配列の .data.ptr（int）で渡cudss.CUDA_R_64Fすパターンを想定。
         #
         # なお: 実際のシグネチャは cudss.pxd / cudss.pyx に従って修正してください。
-        A_mat = cudss.cudssMatrixCreateCsr(
+        A_mat = cudss.matrixCreateCsr(
             nrows, ncols, nnz,
             row_offsets.data.ptr,
             None,  # row indices for COO が不要なら None / 0 など
             col_indices.data.ptr,
             values.data.ptr,
-            cudss.CUDA_R_32I,   # TODO: あなたの enum/定数名に合わせる
-            cudss.CUDA_R_64F,
+            10,   # TODO: あなたの enum/定数名に合わせる
+            5,
             cudss.CUDSS_MATRIX_TYPE_GENERAL,   # or SYMMETRIC/PD など
             cudss.CUDSS_MATRIX_VIEW_FULL,
             cudss.CUDSS_INDEX_BASE_ZERO,       # rowOffsets が 0 始まりなら
-        )
-
-        # Dense 行列 (ベクトルも "n x nrhs の dense 行列" として扱う)
-        print("step2")
-        b_mat = cudss.cudssMatrixCreateDn(
-            nrows, nrhs,
-            b.data.ptr,
-            cudss.CUDA_R_64F,
-        )
-        x_mat = cudss.cudssMatrixCreateDn(
-            nrows, nrhs,
-            x.data.ptr,
-            cudss.CUDA_R_64F,
         )
 
         # ---------------------------------------------------------------------
@@ -102,8 +103,8 @@ def solve_with_cudss():
         # ---------------------------------------------------------------------
         print("step3")
         reorder_alg = cudss.CUDSS_ALG_DEFAULT  # TODO: enum の実体に合わせる
-        cudss.cudssConfigSet(
-            config,
+        cudss.ConfigSet(
+            config,Free
             cudss.CUDSS_REORDERING_ALG,
             reorder_alg,
             cp.int32().itemsize,  # or sizeof(cudssAlgType_t)
@@ -162,11 +163,11 @@ def solve_with_cudss():
         # 後始末（実際の API 名に合わせて直してください）
         # ---------------------------------------------------------------------
         if A_mat is not None:
-            cudss.cudssMatrixDestroy(A_mat)
+            cudss.matrixDestroy(A_mat)
         if x_mat is not None:
-            cudss.cudssMatrixDestroy(x_mat)
+            cudss.matrixDestroy(x_mat)
         if b_mat is not None:
-            cudss.cudssMatrixDestroy(b_mat)
+            cudss.matrixDestroy(b_mat)
 
         if data is not None and handle is not None:
             cudss.dataDestroy(handle, data)

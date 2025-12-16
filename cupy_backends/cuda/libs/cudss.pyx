@@ -5,15 +5,15 @@ cimport cython  # NOQA
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.stdint cimport int32_t, uint32_t, int64_t, intptr_t
 
-from cupy_backends.cuda cimport stream as stream_module
 from cupy_backends.cuda.api cimport runtime
+from cupy_backends.cuda cimport stream as stream_module
 
 ###############################################################################
 # Types
 ###############################################################################
 cdef extern from *:
-    ctypedef void* cudaStream_t 'cudaStream_t'
-    ctypedef enum libraryPropertyType_t 'libraryPropertyType_t':
+    ctypedef size_t cudaStream_t 'cudaStream_t'
+    ctypedef enum libraryPropertyType_t:
         MAJOR_VERSION = 0
         MINOR_VERSION = 1
         PATCH_LEVEL   = 2
@@ -74,7 +74,6 @@ cdef extern from '../../cupy_cudss.h' nogil:
     cudssStatus_t cudssDestroy(cudssHandle_t handle)
     cudssStatus_t cudssGetProperty(
         libraryPropertyType_t propertyType, int *value)
-    
     cudssStatus_t cudssSetStream(cudssHandle_t handle, cudaStream_t stream)
     cudssStatus_t cudssSetDeviceMemHandler(cudssHandle_t handle,
         const cudssDeviceMemHandler_t *handler)
@@ -303,10 +302,9 @@ cpdef int getProperty(libraryPropertyType_t propertyType) except -1:
     check_status(status)
     return value
 
-cpdef setStream(Handle handle):
+cpdef setStream(Handle handle, Stream stream):
     """Sets the stream to be used by the cuDSS library"""
-    cdef intptr_t stream = stream_module.get_current_stream_ptr()
-    status = cudssSetStream(<cudssHandle_t> handle, <runtime.Stream> stream)
+    status = cudssSetStream(<cudssHandle_t> handle, <cudaStream_t> stream)
     check_status(status)
 
 cpdef setDeviceMemHandler(Handle handle, DeviceMemHandler handler):
@@ -502,7 +500,8 @@ cpdef matrixSetDistributionRow1d(Matrix matrix,
         first_row, last_row)
     check_status(status)
 
-cpdef getMatrixGetDn(Matrix matrix):
+cpdef (int64_t, int64_t, int64_t, size_t, int, int) getMatrixGetDn(
+    Matrix matrix):
     """Gets the properties of a dense matrix"""
     cdef int64_t nrows, ncols, ld
     cdef size_t values
@@ -514,9 +513,9 @@ cpdef getMatrixGetDn(Matrix matrix):
     check_status(status)
     return nrows, ncols, ld, values, valueType, layout
 
-cpdef getMatrixBatchDn(Matrix matrix):
-    """Gets the properties of         pass
-a batched dense matrix"""
+cpdef (int64_t, size_t, size_t, size_t, size_t, int, int, int) getMatrixBatchDn(
+    Matrix matrix):
+    """Gets the properties of pass a batched dense matrix"""
     cdef int64_t batchCount
     cdef size_t nrows, ncols, ld
     cdef size_t values
