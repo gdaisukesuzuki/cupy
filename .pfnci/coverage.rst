@@ -1342,6 +1342,8 @@ CuPy CI Test Coverage
      - 
      - 
      - 
+     - 
+     - 
      - ✅
      - ✅
      - ✅
@@ -1351,7 +1353,9 @@ CuPy CI Test Coverage
      - 
    * - 
      - 0.7.1
-     - 22
+     - 24
+     - ✅
+     - ✅
      - ✅
      - ✅
      - ✅

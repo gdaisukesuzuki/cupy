@@ -192,6 +192,7 @@ cusparselt:
     cuda:
       "12.9":
       "13.0":
+      "13.1":
 cudss:
   # https://docs.nvidia.com/cuda/cudss/
   # https://developer.nvidia.com/cudss/downloads
