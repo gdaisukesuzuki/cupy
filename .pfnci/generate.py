@@ -290,7 +290,6 @@ class LinuxGenerator:
                     packages.append(
                         f'libcusparselt{spltmajor}-dev-cuda-{cudamajor}={spec}')
                 else:
-<<<<<<< HEAD
                     packages.append(f'libcusparselt{major}-{spec}')
                     packages.append(f'libcusparselt-devel-{spec}')
             if cudss is not None:
@@ -302,12 +301,6 @@ class LinuxGenerator:
                 else:
                     packages.append(f'libcudss{major}-{spec}')
                     packages.append(f'libcudss-devel-{spec}')
-=======
-                    packages.append(
-                        f'libcusparselt{spltmajor}-cuda-{cudamajor}-{spec}')
-                    packages.append(
-                        f'libcusparselt{spltmajor}-devel-cuda-{cudamajor}-{spec}')
->>>>>>> refs/remotes/origin/dev/cudss071
             return packages
         elif matrix.rocm is not None:
             return self.schema['rocm'][matrix.rocm]['packages']  # type: ignore[no-any-return] # NOQA
